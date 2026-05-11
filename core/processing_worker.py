@@ -82,6 +82,11 @@ class ProcessingWorker:
         with self._lock:
             self._blink_detector.set_threshold(value)
 
+    def set_dynamic_threshold(self, enabled: bool) -> None:
+        """Enable or disable dynamic thresholding."""
+        with self._lock:
+            self._blink_detector.set_dynamic_threshold(enabled)
+
     def reset(self) -> None:
         """Reset session metrics."""
         with self._lock:

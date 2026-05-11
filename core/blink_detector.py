@@ -133,6 +133,11 @@ class BlinkDetector:
         """Override the base EAR threshold."""
         self._base_threshold = float(value)
 
+    def set_dynamic_threshold(self, enabled: bool) -> None:
+        """Enable or disable dynamic thresholding."""
+        self._dynamic_threshold = bool(enabled)
+        self._open_ear_ema = None
+
     def reset(self) -> None:
         """Reset blink counters and history."""
         self._blink_count = 0
