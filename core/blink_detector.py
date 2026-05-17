@@ -8,6 +8,7 @@ from typing import Deque, List, Sequence, Tuple
 from scipy.spatial.distance import euclidean
 from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmark
 
+from utils.buzzer import classify_blink_type
 from utils.config import AppConfig
 from utils.helpers import landmark_to_pixel
 
@@ -25,6 +26,8 @@ class BlinkResult:
     blink_count: int
     blink_event: bool
     is_blinking: bool
+    eyes_closed: bool
+    closed_duration_ms: float
     threshold: float
     face_detected: bool
 
@@ -43,6 +46,7 @@ class BlinkDetector:
         self._closed_frames = 0
         self._is_blinking = False
         self._last_blink_time = 0.0
+        self._blink_closed_start: float | None = None
         self._open_ear_ema: float | None = None
         self._ema_alpha = 0.1
 
@@ -88,8 +92,14 @@ class BlinkDetector:
         avg_ear = (left_ear + right_ear) / 2.0
         threshold = self._compute_threshold(avg_ear)
         blink_event = False
+        eyes_closed = left_ear < threshold and right_ear < threshold
+        closed_duration_ms = 0.0
+        if eyes_closed and self._blink_closed_start is not None:
+            closed_duration_ms = (timestamp - self._blink_closed_start) * 1000.0
 
-        if left_ear < threshold and right_ear < threshold:
+        if eyes_closed:
+            if self._closed_frames == 0:
+                self._blink_closed_start = timestamp
             self._closed_frames += 1
             if self._closed_frames >= self._min_frames:
                 self._is_blinking = True
@@ -99,9 +109,21 @@ class BlinkDetector:
                     self._blink_count += 1
                     self._last_blink_time = timestamp
                     blink_event = True
-                    self._blink_events.append({"timestamp": timestamp, "ear": avg_ear})
+                    event_closed_ms = closed_duration_ms
+                    if self._blink_closed_start is not None:
+                        event_closed_ms = (timestamp - self._blink_closed_start) * 1000.0
+                    rounded_ms = round(event_closed_ms, 1)
+                    self._blink_events.append(
+                        {
+                            "timestamp": timestamp,
+                            "ear": avg_ear,
+                            "closed_duration_ms": rounded_ms,
+                            "blink_type": classify_blink_type(rounded_ms),
+                        }
+                    )
             self._closed_frames = 0
             self._is_blinking = False
+            self._blink_closed_start = None
 
         self._ear_history.append(avg_ear)
 
@@ -112,6 +134,8 @@ class BlinkDetector:
             blink_count=self._blink_count,
             blink_event=blink_event,
             is_blinking=self._is_blinking,
+            eyes_closed=eyes_closed,
+            closed_duration_ms=closed_duration_ms,
             threshold=threshold,
             face_detected=True,
         )
@@ -125,6 +149,8 @@ class BlinkDetector:
             blink_count=self._blink_count,
             blink_event=False,
             is_blinking=False,
+            eyes_closed=False,
+            closed_duration_ms=0.0,
             threshold=self._base_threshold,
             face_detected=False,
         )
@@ -144,6 +170,7 @@ class BlinkDetector:
         self._closed_frames = 0
         self._is_blinking = False
         self._last_blink_time = 0.0
+        self._blink_closed_start = None
         self._open_ear_ema = None
         self._ear_history.clear()
         self._blink_events.clear()

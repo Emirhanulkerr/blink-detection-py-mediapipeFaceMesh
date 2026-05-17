@@ -38,9 +38,16 @@ def export_blink_events_csv(path: str | Path, events: Sequence[dict]) -> Path:
     p.parent.mkdir(parents=True, exist_ok=True)
     with p.open("w", newline="") as file_handle:
         writer = csv.writer(file_handle)
-        writer.writerow(["timestamp", "ear"])
+        writer.writerow(["timestamp", "ear", "closed_duration_ms", "blink_type"])
         for event in events:
-            writer.writerow([event.get("timestamp", ""), event.get("ear", "")])
+            writer.writerow(
+                [
+                    event.get("timestamp", ""),
+                    event.get("ear", ""),
+                    event.get("closed_duration_ms", ""),
+                    event.get("blink_type", ""),
+                ]
+            )
     return p
 
 

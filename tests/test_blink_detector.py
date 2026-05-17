@@ -1,6 +1,7 @@
 import unittest
 
 from core.blink_detector import BlinkDetector
+from utils.buzzer import BLINK_TYPE_NATURAL
 from utils.config import AppConfig
 
 
@@ -28,6 +29,10 @@ class BlinkDetectorTest(unittest.TestCase):
             result = detector.process_ear(ear, ear, timestamp)
             timestamp += 0.05
         self.assertEqual(result.blink_count, 1)
+        events = detector.get_blink_events()
+        self.assertEqual(len(events), 1)
+        self.assertAlmostEqual(events[0]["closed_duration_ms"], 100.0, places=1)
+        self.assertEqual(events[0]["blink_type"], BLINK_TYPE_NATURAL)
 
 
 if __name__ == "__main__":
