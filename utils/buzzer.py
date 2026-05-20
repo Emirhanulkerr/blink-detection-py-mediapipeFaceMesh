@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -23,13 +25,55 @@ def classify_blink_type(closed_duration_ms: float) -> str:
 
 
 def _beep(frequency: int, duration_ms: int) -> None:
+    if duration_ms <= 0:
+        return
+
     if sys.platform == "win32":
         import winsound
 
-        winsound.Beep(frequency, duration_ms)
-    else:
-        print("\a", end="", flush=True)
-        time.sleep(duration_ms / 1000.0)
+        winsound.Beep(int(frequency), int(duration_ms))
+        return
+
+    duration_sec = max(0.01, float(duration_ms) / 1000.0)
+
+    # macOS: use built-in sound playback for an audible alert.
+    if sys.platform == "darwin":
+        afplay = shutil.which("afplay")
+        if afplay:
+            # Use system sounds; pick a lower/higher tone file based on frequency.
+            sound_file = (
+                "/System/Library/Sounds/Basso.aiff"
+                if frequency < 950
+                else "/System/Library/Sounds/Ping.aiff"
+            )
+            try:
+                subprocess.run(
+                    [afplay, sound_file, "-t", str(duration_sec)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=False,
+                )
+                return
+            except Exception:
+                logger.debug("afplay beep failed; falling back", exc_info=True)
+
+        osascript = shutil.which("osascript")
+        if osascript:
+            try:
+                subprocess.run(
+                    [osascript, "-e", "beep 1"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=False,
+                )
+                time.sleep(duration_sec)
+                return
+            except Exception:
+                logger.debug("osascript beep failed; falling back", exc_info=True)
+
+    # Fallback: terminal bell (may be muted by OS), then wait the intended duration.
+    print("\a", end="", flush=True)
+    time.sleep(duration_sec)
 
 
 class BuzzerController:

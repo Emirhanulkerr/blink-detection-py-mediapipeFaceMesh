@@ -3,10 +3,12 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 import time
-from typing import Deque, List, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, Deque, List, Sequence, Tuple
 
 from scipy.spatial.distance import euclidean
-from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmark
+
+if TYPE_CHECKING:
+    from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmark
 
 from utils.buzzer import classify_blink_type
 from utils.config import AppConfig
@@ -73,7 +75,7 @@ class BlinkDetector:
 
     def update_from_landmarks(
         self,
-        landmarks: Sequence[NormalizedLandmark],
+        landmarks: Sequence[Any],
         image_shape: Tuple[int, int, int],
         timestamp: float,
     ) -> BlinkResult:
