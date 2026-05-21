@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
 import logging
-
-import mediapipe as mp
 import numpy as np
-from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmark
+
+if TYPE_CHECKING:
+    import mediapipe as mp
+    from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmark
 
 from utils.config import AppConfig
 
@@ -14,7 +15,10 @@ class FaceDetector:
     """MediaPipe Face Mesh wrapper with landmark caching."""
 
     def __init__(self, config: AppConfig, logger: logging.Logger) -> None:
+        import mediapipe as mp
+
         self._logger = logger
+        self._mp = mp
         self._face_mesh = mp.solutions.face_mesh.FaceMesh(
             static_image_mode=False,
             max_num_faces=config.max_faces,
@@ -22,11 +26,11 @@ class FaceDetector:
             min_detection_confidence=config.min_detection_confidence,
             min_tracking_confidence=config.min_tracking_confidence,
         )
-        self._last_landmarks: Optional[List[NormalizedLandmark]] = None
+        self._last_landmarks: Optional[List[Any]] = None
         self._stale_frames = 0
         self._max_stale = config.landmark_stale_frames
 
-    def detect(self, frame_rgb: np.ndarray) -> Optional[List[NormalizedLandmark]]:
+    def detect(self, frame_rgb: np.ndarray) -> Optional[List[Any]]:
         """Return landmarks for the first detected face, or cached values."""
         try:
             results = self._face_mesh.process(frame_rgb)

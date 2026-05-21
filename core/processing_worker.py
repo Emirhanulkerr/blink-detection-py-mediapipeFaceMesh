@@ -14,6 +14,7 @@ from core.blink_detector import BlinkDetector, BlinkResult, LEFT_EYE_INDICES, RI
 from core.face_detector import FaceDetector
 from core.fps_counter import FPSCounter
 from core.signal_manager import SignalManager
+from utils.buzzer import BuzzerController
 from utils.config import AppConfig
 from utils import drawing_utils
 
@@ -55,6 +56,7 @@ class ProcessingWorker:
         self._stop_event = threading.Event()
         self._running = False
         self._lock = threading.Lock()
+        self._buzzer = BuzzerController(enabled=True)
 
     def start(self) -> None:
         """Start the processing thread."""
@@ -72,6 +74,7 @@ class ProcessingWorker:
             self._thread.join(timeout=2.0)
         self._thread = None
         self._running = False
+        self._buzzer.stop()
 
     @property
     def is_running(self) -> bool:
@@ -91,6 +94,7 @@ class ProcessingWorker:
         """Reset session metrics."""
         with self._lock:
             self._blink_detector.reset()
+        self._buzzer.stop()
 
     def get_blink_events(self) -> List[dict]:
         """Return collected blink events."""
@@ -142,6 +146,13 @@ class ProcessingWorker:
             with self._lock:
                 blink_result = self._blink_detector.update_no_face(timestamp)
                 ear_history = self._blink_detector.get_ear_history()
+            self._buzzer.stop()
+
+        if landmarks is not None:
+            self._buzzer.update(
+                eyes_closed=blink_result.eyes_closed,
+                closed_duration_ms=blink_result.closed_duration_ms,
+            )
 
         fps = self._fps_counter.update()
         metrics = {
@@ -155,7 +166,15 @@ class ProcessingWorker:
         }
 
         if blink_result.blink_event:
-            self._logger.info("Blink detected at %.3f", timestamp)
+            with self._lock:
+                events = self._blink_detector.get_blink_events()
+            last_event = events[-1] if events else {}
+            self._logger.info(
+                "Blink detected at %.3f (type=%s, closed_ms=%s)",
+                timestamp,
+                last_event.get("blink_type", ""),
+                last_event.get("closed_duration_ms", ""),
+            )
 
         self._signal_manager.metrics_ready.emit(metrics)
 
