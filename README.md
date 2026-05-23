@@ -10,10 +10,52 @@ Production-ready, real-time blink detection using MediaPipe Face Mesh and a mode
 
 ## Installation
 
-```bash
+Clone the repository and install dependencies for your platform.
+
+### Windows
+
+```powershell
+git clone https://github.com/Emirhanulkerr/blink-detection-py-mediapipeFaceMesh.git
+cd blink-detection-py-mediapipeFaceMesh
 python -m venv .venv
-source .venv/bin/activate
+.\.venv\Scripts\Activate.ps1
+pip install --upgrade pip
 pip install -r requirements.txt
+```
+
+If script activation is blocked, run once:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+### macOS
+
+```bash
+git clone https://github.com/Emirhanulkerr/blink-detection-py-mediapipeFaceMesh.git
+cd blink-detection-py-mediapipeFaceMesh
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### Linux
+
+```bash
+git clone https://github.com/Emirhanulkerr/blink-detection-py-mediapipeFaceMesh.git
+cd blink-detection-py-mediapipeFaceMesh
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+On Debian/Ubuntu, install Python venv support if needed:
+
+```bash
+sudo apt update
+sudo apt install python3-venv python3-pip
 ```
 
 ## Run
